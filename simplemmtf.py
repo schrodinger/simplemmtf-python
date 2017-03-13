@@ -440,7 +440,7 @@ strategyparamsfmt = {}
 def encode_array(arr, codec, param=0):
     strategy = strategies[codec](param)
 
-    buf = struct.pack(MMTF_ENDIAN + 'iii', codec, len(arr), param)
+    buf = struct.pack(_nativestr(MMTF_ENDIAN + 'iii'), codec, len(arr), param)
 
     for handler in reversed(strategy):
         arr = handler.encode(arr)
@@ -450,10 +450,10 @@ def encode_array(arr, codec, param=0):
 
 
 def decode_array(value):
-    codec, length = struct.unpack(MMTF_ENDIAN + 'ii', value[:8])
+    codec, length = struct.unpack(_nativestr(MMTF_ENDIAN + 'ii'), value[:8])
 
     fmt = strategyparamsfmt.get(codec, 'i')
-    params = struct.unpack(MMTF_ENDIAN + fmt, value[8:12])
+    params = struct.unpack(_nativestr(MMTF_ENDIAN + fmt), value[8:12])
     strategy = strategies[codec](*params)
 
     value = buffer(value, 12)
@@ -465,7 +465,7 @@ def decode_array(value):
 
 def _get_array_length(value):
     if isinstance(value, bytes):
-        return struct.unpack(MMTF_ENDIAN + 'i', value[4:8])[0]
+        return struct.unpack(_nativestr(MMTF_ENDIAN + 'i'), value[4:8])[0]
     return len(value)
 
 
