@@ -20,6 +20,8 @@ def cifisreserved(s):
 
 def cifrepr(s):
     '''returns s, if s is a simple data value, or some quoted version of s'''
+    if s is None:
+        return '?'
     if not s:
         return '.'
     if not cifisreserved(s) and re_cifsimpledatavalue_match(s) is not None:
@@ -106,27 +108,27 @@ _atom_site.auth_asym_id
 _atom_site.pdbx_PDB_model_num
 ''')
 
-        for atom in data.atoms():
+        for _id, atom in enumerate(data.atoms(), 1):
             x, y, z = atom['coords']
             buf.append('%-6s %-3d %s %-3s '
                 '%s %-3s %s %s '
                 '%-2s %s %6.3f %6.3f %6.3f '
                 '%4.2f %6.2f %d %s %d\n' % (
-                    'HETATOM' if atom['sequenceIndex'] == -1 else 'ATOM',
-                    atom['atomId'],
+                    'HETATOM' if atom.get('sequenceIndex') == -1 else 'ATOM',
+                    atom.get('atomId', _id),
             cifrepr(atom['element']),
             cifrepr(atom['atomName']),
-            cifrepr(atom['altLoc']),
+            cifrepr(atom.get('altLoc', '')),
             cifrepr(atom['groupName']),
             cifrepr(atom['chainId']),
             cifrepr(entityMapping.get(atom['chainId'])),
-            atom['sequenceIndex'] + 1,
-            cifrepr(atom['insCode']),
+            atom.get('sequenceIndex', '?'),
+            cifrepr(atom.get('insCode', '')),
             x, y, z,
-            atom['occupancy'],
-            atom['bFactor'],
+            atom.get('occupancy', 1.0),
+            atom.get('bFactor', 0.0),
             atom['formalCharge'],
-            cifrepr(atom['chainName']),
+            cifrepr(atom.get('chainName')),
             atom['modelIndex'] + 1,
         ))
 
