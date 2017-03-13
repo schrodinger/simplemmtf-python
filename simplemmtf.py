@@ -511,6 +511,40 @@ requiredfields = [
     "chainsPerModel",
 ]
 
+levels = {
+    # top-level {key}List len=numChains
+    u'chain': {
+        u'chainName': u'',
+        u'chainId': u'',
+    },
+    # top-level {key}List len=numGroups
+    u'group': {
+        u'sequenceIndex': -1,
+        u'groupId': -1,
+        u'insCode': u'',
+        u'secStruct': -1,
+    },
+    # groupType-level {key}
+    u'grouptype': {
+        u'groupName': u'',
+        u'singleLetterCode': u'?',
+        u'chemCompType': u'',
+    },
+    # groupType-level {key}List
+    u'grouptypeatom': {
+        u'formalCharge': 0,
+        u'atomName': u'',
+        u'element': u'',
+    },
+    # top-level {key}List len=numAtoms
+    u'atom': {
+        u'bFactor': 0.0,
+        u'occupancy': 1.0,
+        u'altLoc': u'',
+        u'atomId': -1,
+    },
+}
+
 
 def assert_consistency(mmtfdict, acceptempty=False):
     '''Raise KeyError if any non-optional field is missing.
@@ -794,26 +828,18 @@ def _atoms_iter(data, bonds=None):
         'zCoordList',
     ])
 
-    atom_iter = data.get_table_iter([
-        'bFactorList',
-        'occupancyList',
-        'altLocList',
-        'atomIdList',
-    ], [0.0, 1.0, '', -1])
+    leveliters = lambda level: [
+        (key, data.get_iter(key + u'List'))
+        for (key, default) in levels[level].items()
+        if key + u'List' in data
+    ]
 
-    group_iter = data.get_table_iter([
-        'groupTypeList',
-        'sequenceIndexList',
-        'groupIdList',
-        'insCodeList',
-        'secStructList',
-    ])
+    chain_list_iters = leveliters(u'chain')
+    group_iters = leveliters(u'group')
+    atom_iters = leveliters(u'atom')
 
-    chain_list_iter = data.get_table_iter([
-        'chainIdList',
-        'chainNameList',
-        'groupsPerChain',
-    ])
+    n_groups_iter = data.get_iter(u'groupsPerChain')
+    groupType_iter = data.get_iter(u'groupTypeList')
 
     groupList = data.get('groupList')
 
@@ -823,18 +849,20 @@ def _atoms_iter(data, bonds=None):
     for n_chains in data.get_iter('chainsPerModel'):
         atom['modelIndex'] += 1
 
-        for (atom['chainId'], atom['chainName'],
-             n_groups) in islice(chain_list_iter, n_chains):
+        for n_groups in islice(n_groups_iter, n_chains):
 
-            for (
-                    groupType,
-                    atom['sequenceIndex'],
-                    atom['groupId'],
-                    atom['insCode'],
-                    atom['secStruct'], ) in islice(group_iter, n_groups):
+            for key, it in chain_list_iters:
+                atom[key] = next(it)
+
+            for groupType in islice(groupType_iter, n_groups):
+
+                for key, it in group_iters:
+                    atom[key] = next(it)
 
                 group = groupList[groupType]
-                atom['groupName'] = group[u'groupName']
+
+                for (key, default) in levels['grouptype'].items():
+                    atom[key] = group.get(key, default)
 
                 if bonds is not None:
                     group_bond_iter = izip(
@@ -845,19 +873,19 @@ def _atoms_iter(data, bonds=None):
                     for (i1, i2, order) in group_bond_iter:
                         add_bond(i1, i2, order, offset)
 
-                group_atom_iter = izip(
-                    group[u'atomNameList'],
-                    group[u'elementList'],
-                    group[u'formalChargeList'], )
+                group_atom_iters = [
+                    (key, iter(group[key + u'List']))
+                    for (key, default) in levels['grouptypeatom'].items()
+                ]
 
-                for (
-                        atom['atomName'],
-                        atom['element'],
-                        atom['formalCharge'], ) in group_atom_iter:
+                for _ in group[u'atomNameList']:
                     offset += 1
 
-                    (atom['bFactor'], atom['occupancy'], atom['altLoc'],
-                     atom['atomId']) = next(atom_iter)
+                    for key, it in group_atom_iters:
+                        atom[key] = next(it)
+
+                    for key, it in atom_iters:
+                        atom[key] = next(it)
 
                     # use "coords" instead of xCoord, yCoord, zCoord
                     atom['coords'] = next(coord_iter)
@@ -940,21 +968,13 @@ def _from_atoms(atom_iter, bond_iter=None):
         u'xCoordList': [],
         u'yCoordList': [],
         u'zCoordList': [],
-        u'bFactorList': optionallist(0.0),
-        u'occupancyList': optionallist(1.0),
-        u'altLocList': optionallist(u''),
-        u'atomIdList': optionallist(-1),
 
         # numGroups
-        u'sequenceIndexList': optionallist(-1),  # label_seq_id
         u'groupIdList': [],  # auth_seq_id
-        u'insCodeList': optionallist(u''),
-        u'secStructList': optionallist(-1),
         u'groupTypeList': [],  # groupList indices
 
         # numChains
         u'chainIdList': [],
-        u'chainNameList': optionallist(u''),
         u'groupsPerChain': [],
 
         # numModels
@@ -968,6 +988,13 @@ def _from_atoms(atom_iter, bond_iter=None):
         u'bondAtomList': [],
         u'bondOrderList': optionallist(1),
     }
+
+    for level in (u'chain', u'group', u'atom'):
+        for key, default in levels[level].items():
+            key += u'List'
+            if key in raw:
+                continue
+            raw[key] = optionallist(default)
 
     groupHash = {}
     residue = {}
@@ -1003,10 +1030,8 @@ def _from_atoms(atom_iter, bond_iter=None):
         raw[u'zCoordList'].append(z)
 
         # numAtoms optional
-        raw[u'bFactorList'].append(atom.get(u'bFactor'))
-        raw[u'occupancyList'].append(atom.get(u'occupancy'))
-        raw[u'altLocList'].append(atom.get(u'altLoc'))
-        raw[u'atomIdList'].append(atom.get(u'atomId'))
+        for key, default in levels[u'atom'].items():
+            raw[key + u'List'].append(atom.get(key, default))
 
         is_same_model = dict_subset_equal(prev_atom, atom, [u'modelIndex'])
 
@@ -1014,56 +1039,42 @@ def _from_atoms(atom_iter, bond_iter=None):
             raw[u'chainsPerModel'].append(0)
             is_same_chain = False
         else:
-            is_same_chain = dict_subset_equal(prev_atom, atom, [
-                u'chainId',
-                u'chainName',
-            ])
+            is_same_chain = dict_subset_equal(prev_atom, atom,
+                                              levels[u'chain'])
 
         if not is_same_chain:
             raw[u'chainsPerModel'][-1] += 1
-            raw[u'chainIdList'].append(atom.get(u'chainId', u''))
-            raw[u'chainNameList'].append(atom.get(u'chainName'))
             raw[u'groupsPerChain'].append(0)  # increment with every group
+            for key, default in levels[u'chain'].items():
+                raw[key + u'List'].append(atom.get(key, default))
             is_same_residue = False
         else:
-            is_same_residue = dict_subset_equal(prev_atom, atom, [
-                u'sequenceIndex',
-                u'groupId',
-                u'insCode',
-                u'secStruct',
-            ])
+            is_same_residue = dict_subset_equal(prev_atom, atom,
+                                                levels[u'group'])
 
         if not is_same_residue:
             raw[u'groupsPerChain'][-1] += 1
 
             handleGroupType(residue)
 
-            raw[u'sequenceIndexList'].append(
-                atom.get(u'sequenceIndex'))  # label_seq_id
-            raw[u'groupIdList'].append(atom.get(u'groupId', -1))  # auth_seq_id
-            raw[u'insCodeList'].append(atom.get(u'insCode'))
-            raw[u'secStructList'].append(atom.get(u'secStruct'))
+            for key, default in levels[u'group'].items():
+                raw[key + u'List'].append(atom.get(key, default))
 
             residue = {
-                u'formalChargeList': [],
-                u'atomNameList': [],
-                u'elementList': [],
                 u'bondAtomList': [],
                 u'bondOrderList': [],
-                u'groupName': u'',
-                u'singleLetterCode': u'?',
-                u'chemCompType': u'',
             }
 
-            residue[u'groupName'] = atom.get(u'groupName', u'')
-            residue[u'singleLetterCode'] = atom.get(u'singleLetterCode', u'')
-            residue[u'chemCompType'] = atom.get(u'chemCompType', u'')
+            residue.update((key + u'List', [])
+                           for key in levels['grouptypeatom'])
+
+            for key, default in levels[u'grouptype'].items():
+                residue[key] = atom.get(key, default)
 
             residue_first_atom = atomIndex
 
-        residue[u'formalChargeList'].append(atom.get(u'formalCharge', 0))
-        residue[u'atomNameList'].append(atom.get(u'atomName', u''))
-        residue[u'elementList'].append(atom.get(u'element', u''))
+        for key, default in levels[u'grouptypeatom'].items():
+            residue[key + u'List'].append(atom.get(key, default))
 
         for bond in bonds.get(atomIndex, ()):
             if bond[0] < residue_first_atom:
