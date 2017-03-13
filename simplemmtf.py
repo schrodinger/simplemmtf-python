@@ -786,6 +786,20 @@ class MmtfDict:
         raw = _from_atoms(atom_iter, bond_iter)
         return cls(raw)
 
+    def atoms(self, bonds=None):
+        '''Iterator over atoms.
+
+        @param bonds: Optional output variable for bonds as (index1, index2, order)
+        @type bonds: list
+
+        @rtype: generator
+        '''
+        return _atoms_iter(self, bonds)
+
+    def groups(self):
+        '''Iterator over groups.'''
+        return _atoms_iter(self, _just_groups=True)
+
 
 from_atoms = MmtfDict.from_atoms
 decode = lambda data: MmtfDict(data)
@@ -800,15 +814,7 @@ def fetch(code):
 ############# TRAVERSAL ######################################
 
 
-def _atoms_iter(data, bonds=None):
-    '''
-    Iterator over atoms.
-
-    @param bonds: Optional output variable for bonds as (index1, index2, order)
-    @type bonds: list
-
-    @rtype: generator
-    '''
+def _atoms_iter(data, bonds=None, _just_groups=False):
     from itertools import islice
 
     def add_bond(i1, i2, order, offset=0):
@@ -864,6 +870,10 @@ def _atoms_iter(data, bonds=None):
                 for (key, default) in levels['grouptype'].items():
                     atom[key] = group.get(key, default)
 
+                if _just_groups:
+                    yield atom.copy()
+                    continue
+
                 if bonds is not None:
                     group_bond_iter = izip(
                         group[u'bondAtomList'][0::2],
@@ -892,8 +902,6 @@ def _atoms_iter(data, bonds=None):
 
                     yield atom.copy()
 
-
-MmtfDict.atoms = _atoms_iter
 
 ############### TABLE SERIALIZATION ######################
 
