@@ -76,7 +76,6 @@ Serialize atom table to MMTF:
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from __future__ import unicode_literals
 
 import os
 import sys
@@ -97,9 +96,7 @@ if sys.version_info[0] < 3:
     izip = itertools.izip
     izip_longest = itertools.izip_longest
     _next_method_name = 'next'
-    _nativestr = lambda s: s if isinstance(s, bytes) else s.encode('ascii')
     chr = unichr
-    str = unicode
 else:
     # python3
     from urllib.request import urlopen
@@ -108,14 +105,14 @@ else:
     buffer = lambda s, i=0: memoryview(s)[i:]
     xrange = range
     _next_method_name = '__next__'
-    _nativestr = lambda s: s.decode('ascii') if isinstance(s, bytes) else s
+    unicode = str
 
 
 def mmtfstr(s):
     '''Cast `s` to MMTF compatible string'''
     if isinstance(s, bytes):
         return s.decode('ascii')
-    return str(s)
+    return unicode(s)
 
 
 class _apiproxy:
@@ -280,7 +277,7 @@ class IntegerChars:
 
     @staticmethod
     def decode(in_ints):
-        return [(chr(x) if x else '') for x in api.simpleiter(in_ints)]
+        return [(chr(x) if x else u'') for x in api.simpleiter(in_ints)]
 
 
 ######## BUFFERS ################################################
@@ -294,9 +291,9 @@ class NumbersBuffer:
         if not self.typemap:
             from array import array
             self.__class__.array = staticmethod(array)
-            for code in _nativestr('bhil'):
+            for code in 'bhil':
                 self.typemap['i' + str(array(code).itemsize)] = code
-            for code in _nativestr('fd'):
+            for code in 'fd':
                 self.typemap['f' + str(array(code).itemsize)] = code
             self.typemap['f'] = self.typemap['f4']
             self.typemap['i'] = self.typemap['i4']
@@ -440,7 +437,7 @@ strategyparamsfmt = {}
 def encode_array(arr, codec, param=0):
     strategy = strategies[codec](param)
 
-    buf = struct.pack(_nativestr(MMTF_ENDIAN + 'iii'), codec, len(arr), param)
+    buf = struct.pack(MMTF_ENDIAN + 'iii', codec, len(arr), param)
 
     for handler in reversed(strategy):
         arr = handler.encode(arr)
@@ -450,10 +447,10 @@ def encode_array(arr, codec, param=0):
 
 
 def decode_array(value):
-    codec, length = struct.unpack(_nativestr(MMTF_ENDIAN + 'ii'), value[:8])
+    codec, length = struct.unpack(MMTF_ENDIAN + 'ii', value[:8])
 
     fmt = strategyparamsfmt.get(codec, 'i')
-    params = struct.unpack(_nativestr(MMTF_ENDIAN + fmt), value[8:12])
+    params = struct.unpack(MMTF_ENDIAN + fmt, value[8:12])
     strategy = strategies[codec](*params)
 
     value = buffer(value, 12)
@@ -465,7 +462,7 @@ def decode_array(value):
 
 def _get_array_length(value):
     if isinstance(value, bytes):
-        return struct.unpack(_nativestr(MMTF_ENDIAN + 'i'), value[4:8])[0]
+        return struct.unpack(MMTF_ENDIAN + 'i', value[4:8])[0]
     return len(value)
 
 
@@ -474,41 +471,41 @@ def _get_array_length(value):
 MMTF_SPEC_VERSION = (1, 0)
 
 encodingrules = {
-    "altLocList": (6, 0),
-    "atomIdList": (8, 0),
-    "bFactorList": (10, 100),
-    "bondAtomList": (4, 0),
-    "bondOrderList": (2, 0),
-    "chainIdList": (5, 4),
-    "chainNameList": (5, 4),
-    "groupIdList": (8, 0),
-    "groupTypeList": (4, 0),
-    "insCodeList": (6, 0),
-    "occupancyList": (9, 100),
-    "secStructList": (2, 0),
-    "sequenceIndexList": (8, 0),
-    "xCoordList": (10, 1000),
-    "yCoordList": (10, 1000),
-    "zCoordList": (10, 1000),
+    u"altLocList": (6, 0),
+    u"atomIdList": (8, 0),
+    u"bFactorList": (10, 100),
+    u"bondAtomList": (4, 0),
+    u"bondOrderList": (2, 0),
+    u"chainIdList": (5, 4),
+    u"chainNameList": (5, 4),
+    u"groupIdList": (8, 0),
+    u"groupTypeList": (4, 0),
+    u"insCodeList": (6, 0),
+    u"occupancyList": (9, 100),
+    u"secStructList": (2, 0),
+    u"sequenceIndexList": (8, 0),
+    u"xCoordList": (10, 1000),
+    u"yCoordList": (10, 1000),
+    u"zCoordList": (10, 1000),
 }
 
 requiredfields = [
-    "mmtfVersion",
-    "mmtfProducer",
-    "numBonds",
-    "numAtoms",
-    "numGroups",
-    "numChains",
-    "numModels",
-    "groupList",
-    "xCoordList",
-    "yCoordList",
-    "zCoordList",
-    "groupIdList",
-    "groupTypeList",
-    "chainIdList",
-    "groupsPerChain",
-    "chainsPerModel",
+    u"mmtfVersion",
+    u"mmtfProducer",
+    u"numBonds",
+    u"numAtoms",
+    u"numGroups",
+    u"numChains",
+    u"numModels",
+    u"groupList",
+    u"xCoordList",
+    u"yCoordList",
+    u"zCoordList",
+    u"groupIdList",
+    u"groupTypeList",
+    u"chainIdList",
+    u"groupsPerChain",
+    u"chainsPerModel",
 ]
 
 levels = {
@@ -670,8 +667,8 @@ class MmtfDict:
         self._set_data(msgpack.unpack(data, **_KWARGS_UNPACK))
 
     def _set_data(self, data):
-        v = mmtfstr(data.get('mmtfVersion', ''))
-        v_major = int(v.split('.')[0] or 0)
+        v = mmtfstr(data.get(u'mmtfVersion', ''))
+        v_major = int(v.split(u'.')[0] or 0)
 
         if v_major > MMTF_SPEC_VERSION[0]:
             raise NotImplementedError('Unsupported version: ' + v)
@@ -718,7 +715,7 @@ class MmtfDict:
         except KeyError:
             return default
 
-        if not (key.endswith('List') and isinstance(value, bytes)):
+        if not (key.endswith(u'List') and isinstance(value, bytes)):
             return value
 
         return decode_array(value)
@@ -821,17 +818,17 @@ def _atoms_iter(data, bonds=None, _just_groups=False):
         bonds.append((i1 + offset, i2 + offset, order))
 
     if bonds is not None:
-        bondAtomList_iter = data.get_iter('bondAtomList')
+        bondAtomList_iter = data.get_iter(u'bondAtomList')
 
-        for order in data.get_iter('bondOrderList'):
+        for order in data.get_iter(u'bondOrderList'):
             i1 = next(bondAtomList_iter)
             i2 = next(bondAtomList_iter)
             add_bond(i1, i2, order)
 
     coord_iter = data.get_table_iter([
-        'xCoordList',
-        'yCoordList',
-        'zCoordList',
+        u'xCoordList',
+        u'yCoordList',
+        u'zCoordList',
     ])
 
     leveliters = lambda level: [
@@ -847,13 +844,13 @@ def _atoms_iter(data, bonds=None, _just_groups=False):
     n_groups_iter = data.get_iter(u'groupsPerChain')
     groupType_iter = data.get_iter(u'groupTypeList')
 
-    groupList = data.get('groupList')
+    groupList = data.get(u'groupList')
 
-    atom = {'modelIndex': -1}
+    atom = {u'modelIndex': -1}
     offset = 0
 
-    for n_chains in data.get_iter('chainsPerModel'):
-        atom['modelIndex'] += 1
+    for n_chains in data.get_iter(u'chainsPerModel'):
+        atom[u'modelIndex'] += 1
 
         for n_groups in islice(n_groups_iter, n_chains):
 
@@ -867,7 +864,7 @@ def _atoms_iter(data, bonds=None, _just_groups=False):
 
                 group = groupList[groupType]
 
-                for (key, default) in levels['grouptype'].items():
+                for (key, default) in levels[u'grouptype'].items():
                     atom[key] = group.get(key, default)
 
                 if _just_groups:
@@ -885,7 +882,7 @@ def _atoms_iter(data, bonds=None, _just_groups=False):
 
                 group_atom_iters = [
                     (key, iter(group[key + u'List']))
-                    for (key, default) in levels['grouptypeatom'].items()
+                    for (key, default) in levels[u'grouptypeatom'].items()
                 ]
 
                 for _ in group[u'atomNameList']:
@@ -898,7 +895,7 @@ def _atoms_iter(data, bonds=None, _just_groups=False):
                         atom[key] = next(it)
 
                     # use "coords" instead of xCoord, yCoord, zCoord
-                    atom['coords'] = next(coord_iter)
+                    atom[u'coords'] = next(coord_iter)
 
                     yield atom.copy()
 
@@ -1114,7 +1111,7 @@ if __name__ == '__main__':
         d = from_url(fn)
         d.to_dict()
         for a in list(d.atoms())[:3]:
-            print(a['groupName'], a['groupId'], a['atomName'], a['coords'])
+            print(a[u'groupName'], a[u'groupId'], a[u'atomName'], a[u'coords'])
         # re-serialization
         bonds = []
         atoms = list(d.atoms(bonds))
