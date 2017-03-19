@@ -11,6 +11,12 @@ This implementation is similar (but unrelated) to [mmtf-python](https://github.c
 
 ## Examples
 
+* [mmtf2cif.py](mmtf2cif.py): Convert MMTF to mmCIF (without bonds)
+* [pdb2mmtf.py](pdb2mmtf.py): Convert PDB to MMTF (without bonds)
+* [pymol_get_mmtfstr.py](pymol_get_mmtfstr.py): Register MMTF export with PyMOL 1.8.6
+
+## Example Code
+
 ```python
 >>> import simplemmtf
 >>> d = simplemmtf.fetch('1rx1')
