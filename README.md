@@ -18,7 +18,22 @@ This implementation is similar (but unrelated) to [mmtf-python](https://github.c
 '0.2.0'
 ```
 
+```python
+>>> next(d.atoms())
+{u'atomName': u'N',
+ u'chainId': u'A',
+ u'chemCompType': u'L-PEPTIDE LINKING',
+ u'coords': (12.284, 42.763, 10.037),
+ u'element': u'N',
+ u'formalCharge': 0,
+ u'groupId': 1,
+ u'groupName': u'MET',
+ u'modelIndex': 0,
+ u'singleLetterCode': u'M'}
+```
+
 ## License
 
 Copyright 2017 [Schrodinger, Inc.](http://www.schrodinger.com/)
+
 Published under the **BSD-3-Clause** license.

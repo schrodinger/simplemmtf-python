@@ -81,4 +81,7 @@ DESCRIPTION
     return d_out.encode()
 
 
-pymol.exporting.savefunctions['mmtf'] = get_mmtfstr
+try:
+    pymol.exporting.savefunctions['mmtf'] = get_mmtfstr
+except AttributeError:
+    print('Error: registering mmtf export requires PyMOL >= 1.8.6')
