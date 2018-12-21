@@ -110,11 +110,34 @@ def test_encode_recode():
             raise UserWarning(key)
 
 
+def test_encodable():
+    atoms = [{
+        u'atomName': u'N',
+        u'chainId': u'A',
+        u'coords': (12.284, 42.763, 10.037),
+        u'element': u'N',
+        u'groupName': u'MET',
+    }]
+
+    # len('A') <= 4: encodable -> binary
+    d = simplemmtf.from_atoms(atoms)
+    assert d.get(u'chainIdList') == ['A']
+    assert isinstance(d._data[u'chainIdList'], bytes)
+
+    atoms[0][u'chainId'] = u'ABCDE'
+
+    # len('ABCDE') > 4: not encodable -> array
+    d = simplemmtf.from_atoms(atoms)
+    assert d.get(u'chainIdList') == ['ABCDE']
+    assert isinstance(d._data[u'chainIdList'], list)
+
+
 def test():
     for fn in sys.argv[1:]:
         test_file(fn)
 
     test_encode_recode()
+    test_encodable()
 
 
 if __name__ == '__main__':

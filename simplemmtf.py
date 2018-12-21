@@ -437,6 +437,22 @@ strategyparamsfmt = {}
 ########## MEDIUM LEVEL ARRAY ENCODE/DECODE API #################
 
 
+def check_encodable(arr, codec, param=0):
+    '''Check if an array is encodable with the requested strategy.
+
+    Example of type 5 "fixed-length string array" with string length 4:
+
+        >>> check_encodable(["ABCD"], 5, 4)
+        True
+        >>> check_encodable(["ABCDE"], 5, 4)
+        False
+    '''
+    if codec == 5:
+        return all(len(s) <= param for s in arr)
+
+    return True
+
+
 def encode_array(arr, codec, param=0):
     strategy = strategies[codec](param)
 
@@ -757,7 +773,7 @@ class MmtfDict:
         if codec == -1:
             codec, param = encodingrules.get(key, (0, 0))
 
-        if codec != 0:
+        if codec != 0 and check_encodable(value, codec, param):
             value = encode_array(value, codec, param)
 
         self._data[mmtfstr(key)] = value
