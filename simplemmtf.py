@@ -165,7 +165,10 @@ class RunLength:
     @staticmethod
     def encode(iterable):
         in_iter = api.simpleiter(iterable)
-        curr = next(in_iter)
+        try:
+            curr = next(in_iter)
+        except StopIteration:
+            return
         counter = 1
         for item in in_iter:
             if item == curr:
