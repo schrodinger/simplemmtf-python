@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
     name="simplemmtf",
     description='MMTF I/O library',
-    version='0.1',
+    version='0.2',
     py_modules=[
         "simplemmtf",
     ],
