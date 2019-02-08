@@ -136,12 +136,19 @@ def simpleiter(iterable):
 
 
 def asarray(arr, dtype='i'):
+    '''
+    @type arr: iterable
+    @rtype: numpy.ndarray
+    '''
     if hasattr(arr, '__len__'):
         return numpy.asarray(arr, dtype)
     return numpy.fromiter(arr, dtype)
 
 
 def aslist(iterable):
+    '''
+    @rtype: list
+    '''
     if isinstance(iterable, list):
         return iterable
     if hasattr(iterable, 'tolist'):
@@ -150,6 +157,8 @@ def aslist(iterable):
 
 
 def noiter(iterable):
+    '''If `iterable` is an iterator then convert it to a list.
+    '''
     if not hasattr(iterable, '__len__') and \
             hasattr(iterable, _next_method_name):
         return list(iterable)
@@ -454,6 +463,14 @@ def check_encodable(arr, codec, param=0):
 
 
 def encode_array(arr, codec, param=0):
+    '''
+    @param arr: array to encode
+    @type arr: sequence
+    @param codec: encoding strategy
+    @type codec: int
+    @param param: codec-specific parameter data
+    @rtype: bytes
+    '''
     strategy = strategies[codec](param)
 
     buf = struct.pack(MMTF_ENDIAN + 'iii', codec, len(arr), param)
@@ -466,6 +483,11 @@ def encode_array(arr, codec, param=0):
 
 
 def decode_array(value):
+    '''
+    @param value: binary encoded array
+    @type value: bytes
+    @rtype: iterable
+    '''
     codec, length = struct.unpack(MMTF_ENDIAN + 'ii', value[:8])
 
     fmt = strategyparamsfmt.get(codec, 'i')
