@@ -1,0 +1,28 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: simplemmtf-python
+  version: {{ data.get('version') }}
+
+about:
+  license: BSD-3-Clause
+  license_family: BSD
+  summary: MMTF I/O Python Library
+
+source:
+  path: ../
+
+requirements:
+  host:
+    - python
+  run:
+    - python >=3.6
+    - msgpack-python
+
+build:
+  script: python setup.py install --single-version-externally-managed --record=record.txt
+  noarch: python
+
+test:
+  imports:
+    - simplemmtf
