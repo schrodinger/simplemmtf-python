@@ -1,0 +1,19 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install system dependencies
+      run: >
+        sudo apt-get update;
+        sudo apt-get install -yq
+        python3-msgpack
+        python3-numpy
+
+    - name: Test
+      run: python3 test.py
