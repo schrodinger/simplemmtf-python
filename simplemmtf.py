@@ -95,6 +95,7 @@ def mmtfstr(s):
     '''Cast `s` to MMTF compatible string'''
     if isinstance(s, bytes):
         return s.decode('ascii')
+    assert not isinstance(s, bytearray)
     return str(s)
 
 
@@ -487,6 +488,7 @@ def decode_array(value):
 def _get_array_length(value):
     if isinstance(value, bytes):
         return struct.unpack(MMTF_ENDIAN + 'i', value[4:8])[0]
+    assert not isinstance(value, bytearray)
     return len(value)
 
 
@@ -680,7 +682,7 @@ class MmtfDict:
                 self.set(key, value)
             return
 
-        if isinstance(data, bytes):
+        if isinstance(data, (bytes, bytearray)):
             if data[:2] != b'\x1f\x8b':  # gzip magic number
                 self._set_data(msgpack.unpackb(data, **_KWARGS_UNPACK))
                 return
