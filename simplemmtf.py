@@ -84,7 +84,7 @@ import struct
 
 try:
     import msgpack
-    _KWARGS_UNPACK = {}
+    _KWARGS_UNPACK = {'encoding': 'utf-8'} if msgpack.version[0] < 1 else {}
     _KWARGS_PACK = {'use_bin_type': True}
 except ImportError:
     import umsgpack as msgpack
