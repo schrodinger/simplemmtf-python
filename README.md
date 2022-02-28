@@ -6,6 +6,7 @@ This implementation is similar (but unrelated) to [mmtf-python](https://github.c
 
 ## Dependencies
 
+* Python 3.6+
 * [msgpack-python](https://github.com/msgpack/msgpack-python) or [u-msgpack-python](https://github.com/vsergeev/u-msgpack-python)
 * numpy (optional)
 

@@ -73,10 +73,6 @@ Serialize atom table to MMTF:
 
 '''
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import sys
 import itertools
@@ -91,28 +87,15 @@ except ImportError:
     _KWARGS_UNPACK = {}
     _KWARGS_PACK = {}
 
-if sys.version_info[0] < 3:
-    from urllib import urlopen
-    izip = itertools.izip
-    izip_longest = itertools.izip_longest
-    _next_method_name = 'next'
-    chr = unichr
-else:
-    # python3
-    from urllib.request import urlopen
-    izip = zip
-    izip_longest = itertools.zip_longest
-    buffer = lambda s, i=0: memoryview(s)[i:]
-    xrange = range
-    _next_method_name = '__next__'
-    unicode = str
+from urllib.request import urlopen
+_next_method_name = '__next__'
 
 
 def mmtfstr(s):
     '''Cast `s` to MMTF compatible string'''
     if isinstance(s, bytes):
         return s.decode('ascii')
-    return unicode(s)
+    return str(s)
 
 
 class _apiproxy:
@@ -350,7 +333,7 @@ class StringsBuffer:
         e = self.encoding
         return [
             bytes(in_bytes[i:i + n]).rstrip(b'\0').decode(e)
-            for i in xrange(0, len(in_bytes), n)
+            for i in range(0, len(in_bytes), n)
         ]
 
     def encode(self, strings):
@@ -494,7 +477,7 @@ def decode_array(value):
     params = struct.unpack(MMTF_ENDIAN + fmt, value[8:12])
     strategy = strategies[codec](*params)
 
-    value = buffer(value, 12)
+    value = memoryview(value)[12:]
     for handler in strategy:
         value = handler.decode(value)
 
@@ -780,8 +763,8 @@ class MmtfDict:
         missing columns.
         '''
         if defaults is None:
-            return izip_longest(*[self.get_iter(k) for k in keys])
-        return izip(*[
+            return itertools.zip_longest(*[self.get_iter(k) for k in keys])
+        return zip(*[
             self.get_iter(k, itertools.repeat(d))
             for (k, d) in zip(keys, defaults)
         ])
@@ -913,7 +896,7 @@ def _atoms_iter(data, bonds=None, _just_groups=False):
                     continue
 
                 if bonds is not None:
-                    group_bond_iter = izip(
+                    group_bond_iter = zip(
                         group[u'bondAtomList'][0::2],
                         group[u'bondAtomList'][1::2],
                         group[u'bondOrderList'], )
