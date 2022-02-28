@@ -297,7 +297,7 @@ class NumbersBuffer:
 
     def decode(self, in_bytes):
         a = self.array(self.enctype)
-        a.fromstring(in_bytes)
+        a.frombytes(in_bytes)
         if sys.byteorder != 'big':
             a.byteswap()
         return a
@@ -306,7 +306,7 @@ class NumbersBuffer:
         a = self.array(self.enctype, in_ints)
         if sys.byteorder != 'big':
             a.byteswap()
-        return a.tostring()
+        return a.tobytes()
 
 
 @apinumpy
@@ -319,7 +319,7 @@ class NumbersBuffer:
         return numpy.frombuffer(in_bytes, self.enctype).astype(self.dectype)
 
     def encode(self, in_ints):
-        return asarray(in_ints, self.enctype).tostring()
+        return asarray(in_ints, self.enctype).tobytes()
 
 
 @apigeneric
@@ -365,7 +365,7 @@ class StringsBuffer:
     def encode(self, strings):
         s_it = (s.encode(self.encoding) for s in strings)
         bstrings = numpy.fromiter(s_it, self.enctype, len(strings))
-        return bstrings.tostring()
+        return bstrings.tobytes()
 
 
 ########## NUMPY API ############################################
