@@ -1,9 +1,9 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name="simplemmtf",
     description='MMTF I/O library',
-    version='0.2',
+    version='1.0',
     py_modules=[
         "simplemmtf",
     ],

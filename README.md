@@ -1,4 +1,4 @@
-# Experimental MMTF I/O Python Library
+# MMTF I/O Python Library
 
 **simplemmtf** is a lightweight [MMTF](http://mmtf.rcsb.org/) encoding and decoding module written in Python. It was originally developed for PyMOL 1.8.4 to prototype MMTF load support.
 
@@ -6,6 +6,7 @@ This implementation is similar (but unrelated) to [mmtf-python](https://github.c
 
 ## Dependencies
 
+* Python 3.6+
 * [msgpack-python](https://github.com/msgpack/msgpack-python) or [u-msgpack-python](https://github.com/vsergeev/u-msgpack-python)
 * numpy (optional)
 

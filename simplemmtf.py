@@ -73,10 +73,6 @@ Serialize atom table to MMTF:
 
 '''
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import sys
 import itertools
@@ -84,35 +80,23 @@ import struct
 
 try:
     import msgpack
-    _KWARGS_UNPACK = {}
+    _KWARGS_UNPACK = {'encoding': 'utf-8'} if msgpack.version[0] < 1 else {}
     _KWARGS_PACK = {'use_bin_type': True}
 except ImportError:
     import umsgpack as msgpack
     _KWARGS_UNPACK = {}
     _KWARGS_PACK = {}
 
-if sys.version_info[0] < 3:
-    from urllib import urlopen
-    izip = itertools.izip
-    izip_longest = itertools.izip_longest
-    _next_method_name = 'next'
-    chr = unichr
-else:
-    # python3
-    from urllib.request import urlopen
-    izip = zip
-    izip_longest = itertools.zip_longest
-    buffer = lambda s, i=0: memoryview(s)[i:]
-    xrange = range
-    _next_method_name = '__next__'
-    unicode = str
+from urllib.request import urlopen
+_next_method_name = '__next__'
 
 
 def mmtfstr(s):
     '''Cast `s` to MMTF compatible string'''
     if isinstance(s, bytes):
         return s.decode('ascii')
-    return unicode(s)
+    assert not isinstance(s, bytearray)
+    return str(s)
 
 
 class _apiproxy:
@@ -314,7 +298,7 @@ class NumbersBuffer:
 
     def decode(self, in_bytes):
         a = self.array(self.enctype)
-        a.fromstring(in_bytes)
+        a.frombytes(in_bytes)
         if sys.byteorder != 'big':
             a.byteswap()
         return a
@@ -323,7 +307,7 @@ class NumbersBuffer:
         a = self.array(self.enctype, in_ints)
         if sys.byteorder != 'big':
             a.byteswap()
-        return a.tostring()
+        return a.tobytes()
 
 
 @apinumpy
@@ -336,7 +320,7 @@ class NumbersBuffer:
         return numpy.frombuffer(in_bytes, self.enctype).astype(self.dectype)
 
     def encode(self, in_ints):
-        return asarray(in_ints, self.enctype).tostring()
+        return asarray(in_ints, self.enctype).tobytes()
 
 
 @apigeneric
@@ -350,7 +334,7 @@ class StringsBuffer:
         e = self.encoding
         return [
             bytes(in_bytes[i:i + n]).rstrip(b'\0').decode(e)
-            for i in xrange(0, len(in_bytes), n)
+            for i in range(0, len(in_bytes), n)
         ]
 
     def encode(self, strings):
@@ -382,7 +366,7 @@ class StringsBuffer:
     def encode(self, strings):
         s_it = (s.encode(self.encoding) for s in strings)
         bstrings = numpy.fromiter(s_it, self.enctype, len(strings))
-        return bstrings.tostring()
+        return bstrings.tobytes()
 
 
 ########## NUMPY API ############################################
@@ -494,7 +478,7 @@ def decode_array(value):
     params = struct.unpack(MMTF_ENDIAN + fmt, value[8:12])
     strategy = strategies[codec](*params)
 
-    value = buffer(value, 12)
+    value = memoryview(value)[12:]
     for handler in strategy:
         value = handler.decode(value)
 
@@ -504,6 +488,7 @@ def decode_array(value):
 def _get_array_length(value):
     if isinstance(value, bytes):
         return struct.unpack(MMTF_ENDIAN + 'i', value[4:8])[0]
+    assert not isinstance(value, bytearray)
     return len(value)
 
 
@@ -697,7 +682,7 @@ class MmtfDict:
                 self.set(key, value)
             return
 
-        if isinstance(data, bytes):
+        if isinstance(data, (bytes, bytearray)):
             if data[:2] != b'\x1f\x8b':  # gzip magic number
                 self._set_data(msgpack.unpackb(data, **_KWARGS_UNPACK))
                 return
@@ -780,8 +765,8 @@ class MmtfDict:
         missing columns.
         '''
         if defaults is None:
-            return izip_longest(*[self.get_iter(k) for k in keys])
-        return izip(*[
+            return itertools.zip_longest(*[self.get_iter(k) for k in keys])
+        return zip(*[
             self.get_iter(k, itertools.repeat(d))
             for (k, d) in zip(keys, defaults)
         ])
@@ -913,7 +898,7 @@ def _atoms_iter(data, bonds=None, _just_groups=False):
                     continue
 
                 if bonds is not None:
-                    group_bond_iter = izip(
+                    group_bond_iter = zip(
                         group[u'bondAtomList'][0::2],
                         group[u'bondAtomList'][1::2],
                         group[u'bondOrderList'], )
